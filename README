@@ -1,0 +1,40 @@
+Assignment 7
+
+PARTNERS: Tim McLaughlin, Jo Booth
+
+Submitting:
+AUTHORS              geometry.o           quat.h
+Fieldstone.ppm       geometrymaker.h      renderstates.cpp
+FieldstoneNormal.ppm glsupport.cpp        renderstates.h
+LICENSE              glsupport.h          renderstates.o
+Makefile             glsupport.o          rigtform.h
+README               material.cpp         scenegraph.cpp
+animation.txt        material.h           scenegraph.h
+arcball.h            material.o           scenegraph.o
+asst7                matrix4.h            sgfiller.h
+asst7.cpp            mesh.h               sgutils.h
+asst7.o              mesh.interface       shaders
+asstcommon.h         picker.cpp           texture.cpp
+cube.mesh            picker.h             texture.h
+cvec.h               picker.o             texture.o
+drawer.h             ppm.cpp              uniforms.h
+geometry.cpp         ppm.h
+geometry.h           ppm.o
+
+Platforms:
+  Ubuntu and OS X
+
+Compilation:
+  make
+
+Requirements:
+  We met all of the problem set requirements!
+
+Code Design:
+  We just followed the design on the spec.
+
+Running program:
+  ./asst7, use same keybindings and file format as solution binary.
+
+Extra stuff:
+  None.
