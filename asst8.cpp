@@ -462,7 +462,7 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
 
   return out + (out2 * (float(1)/(n_v * n_v)));
 }
-
+static void simpleShadeCube(Mesh& mesh);
 static void shadeCube(Mesh& mesh);
 static void initBunnyMeshes() {
   g_bunnyMesh.load("bunny.mesh");
@@ -470,7 +470,7 @@ static void initBunnyMeshes() {
   // TODO: Init the per vertex normal of g_bunnyMesh, using codes from asst7
   // ...
   shadeCube(g_bunnyMesh);
-
+  // cout << "Finished shading bunny" << endl;
   // TODO: Initialize g_bunnyGeometry from g_bunnyMesh, similar to
   vector<VertexPN> verts;
   for (int i = 0; i < g_bunnyMesh.getNumFaces(); ++i) {
@@ -531,43 +531,39 @@ static void initGround() {
   g_ground.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vbLen, ibLen));
 }
 
-static void shadeCube(Mesh& mesh) {
+static void simpleShadeCube(Mesh& mesh) {
+  Cvec3 normal = Cvec3(0, 1, 0);
+  for (int i = 0; i < mesh.getNumFaces(); ++i) {
+    const Mesh::Face f = mesh.getFace(i);
+    Cvec3 facenorm = f.getNormal();
 
-
-/*  if (g_flat) {
-    Cvec3 normal = Cvec3(0, 1, 0);
-    for (int i = 0; i < mesh.getNumFaces(); ++i) {
-      const Mesh::Face f = mesh.getFace(i);
-      Cvec3 facenorm = f.getNormal();
-
-      for (int j = 0; j < f.getNumVertices(); ++j) {
-        const Mesh::Vertex v = f.getVertex(j);
-        v.setNormal(facenorm);
-      }
+    for (int j = 0; j < f.getNumVertices(); ++j) {
+      const Mesh::Vertex v = f.getVertex(j);
+      v.setNormal(facenorm);
     }
   }
-  else {
-    // Smoove shading*/
-    Cvec3 normal = Cvec3(0, 0, 0);
-    for (int i = 0; i < mesh.getNumVertices(); ++i) {
-      mesh.getVertex(i).setNormal(normal);
-    }
+}
 
-    for (int i = 0; i < mesh.getNumFaces(); ++i) {
-      const Mesh::Face f = mesh.getFace(i);
-      Cvec3 facenorm = f.getNormal();
+static void shadeCube(Mesh& mesh) {
+  Cvec3 normal = Cvec3(0, 0, 0);
+  for (int i = 0; i < mesh.getNumVertices(); ++i) {
+    mesh.getVertex(i).setNormal(normal);
+  }
 
-      for (int j = 0; j < f.getNumVertices(); ++j) {
-        const Mesh::Vertex v = f.getVertex(j);
-        v.setNormal(facenorm + v.getNormal());
-      }
-    }
+  for (int i = 0; i < mesh.getNumFaces(); ++i) {
+    const Mesh::Face f = mesh.getFace(i);
+    Cvec3 facenorm = f.getNormal();
 
-    for (int i = 0; i < mesh.getNumVertices(); ++i) {
-      const Mesh::Vertex v = mesh.getVertex(i);
-      v.setNormal(normalize(v.getNormal()));
+    for (int j = 0; j < f.getNumVertices(); ++j) {
+      const Mesh::Vertex v = f.getVertex(j);
+      v.setNormal(facenorm + v.getNormal());
     }
-  //}
+  }
+
+  for (int i = 0; i < mesh.getNumVertices(); ++i) {
+    const Mesh::Vertex v = mesh.getVertex(i);
+    v.setNormal(normalize(v.getNormal()));
+  }
 }
 
 void collectEdgeVertices(Mesh& m);

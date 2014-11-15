@@ -248,7 +248,7 @@ public:
       return m_.vertex_[v_].position_;
     }
     Cvec3 getNormal() const {
-      assert(m_.vertex_[v_].normal_[0] > -1e37 || !"Error: This normal is uninitialized, you can set it with setNormal()");
+      //assert(m_.vertex_[v_].normal_[0] > -1e37 || !"Error: This normal is uninitialized, you can set it with setNormal()");
       return m_.vertex_[v_].normal_;
     }
     void setPosition(const Cvec3& p) const {
