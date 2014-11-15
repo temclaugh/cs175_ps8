@@ -467,8 +467,15 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
 
   return out + (out2 * (float(1)/(n_v * n_v)));
 }
+
+Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m) {
+  Cvec3 s = p + (n_hat * g_furHeight);
+  return (s - p) * (float(1)/m);
+}
+
 static void simpleShadeCube(Mesh& mesh);
 static void shadeCube(Mesh& mesh);
+
 static void initBunnyMeshes() {
   g_bunnyMesh.load("bunny.mesh");
 
