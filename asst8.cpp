@@ -190,15 +190,7 @@ static void updateShellGeometry() {
         Cvec3 N = get_N(pos, normal, level + 1);
 
         verts.push_back(VertexPNX(pos, N, Cvec2(xs[j % 3], ys[j % 3])));
-        if (j == 2) {
-          verts.push_back(VertexPNX(pos, N, Cvec2(xs[j % 3], ys[j % 3])));
-        }
       }
-      const Mesh::Vertex v = f.getVertex(0);
-      pos = v.getPosition();
-      normal = v.getNormal();
-      Cvec3 N = get_N(pos, normal, level + 1);
-      verts.push_back(VertexPNX(pos, N, Cvec2(xs[0], ys[0])));
     }
 
     int numVertices = verts.size();
