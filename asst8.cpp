@@ -200,8 +200,6 @@ static void updateShellGeometry() {
     }
     g_bunnyShellGeometries[level]->upload(vertices, g_bunnyMesh.getNumVertices());
   }
-
-  // TASK 1 and 3 TODO: finish this function as part of Task 1 and Task 3
 }
 
 static void hairsSimulationCallback(int dontCare) {
@@ -525,17 +523,7 @@ static void initBunnyMeshes() {
         normal = v.getNormal();
 
       verts.push_back(VertexPN(pos, normal));
-      if (j == 2) {
-        verts.push_back(VertexPN(pos, normal));
-      }
     }
-    const Mesh::Vertex v = f.getVertex(0);
-    pos = v.getPosition();
-
-    if (!g_flat)
-      normal = v.getNormal();
-
-    verts.push_back(VertexPN(pos, normal));
   }
 
   // add vertices to bunny geometry
@@ -1534,8 +1522,8 @@ static void initScene() {
   g_mesh_cube->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_cubeGeometryPN, g_specular, Cvec3(0, 0, 0))));
 
-  /* g_bunnyNode->addChild(shared_ptr<MyShapeNode>( */
-  /*                         new MyShapeNode(g_bunnyGeometry, g_bunnyMat))); */
+  g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
+                          new MyShapeNode(g_bunnyGeometry, g_bunnyMat)));
   for (int i = 0; i < g_numShells; ++i) {
     g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
                             new MyShapeNode(g_bunnyShellGeometries[i], g_bunnyShellMats[i])));
