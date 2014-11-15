@@ -172,6 +172,11 @@ static std::vector<Cvec3> g_tipPos,        // should be hair tip pos in world-sp
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
 static void updateShellGeometry() {
+  for (int i = 0; i < g_numShells; ++i) {
+    printf("%d\n", i);
+    /* g_bunnyShellGeometries[i].reset(new SimpleGeometryPNX()); */
+  }
+
   // TASK 1 and 3 TODO: finish this function as part of Task 1 and Task 3
 }
 
