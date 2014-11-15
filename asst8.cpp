@@ -463,14 +463,54 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
   return out + (out2 * (float(1)/(n_v * n_v)));
 }
 
+static void shadeCube(Mesh& mesh);
 static void initBunnyMeshes() {
   g_bunnyMesh.load("bunny.mesh");
 
   // TODO: Init the per vertex normal of g_bunnyMesh, using codes from asst7
   // ...
+  shadeCube(g_bunnyMesh);
 
   // TODO: Initialize g_bunnyGeometry from g_bunnyMesh, similar to
-  // what you did for asst7 ...
+  vector<VertexPN> verts;
+  for (int i = 0; i < g_bunnyMesh.getNumFaces(); ++i) {
+    const Mesh::Face f = g_bunnyMesh.getFace(i);
+    Cvec3 pos;
+    Cvec3 normal;
+
+    if (g_flat)
+      normal = f.getNormal();
+
+    for (int j = 0; j < f.getNumVertices(); ++j) {
+      const Mesh::Vertex v = f.getVertex(j);
+      pos = v.getPosition();
+
+      if (!g_flat)
+        normal = v.getNormal();
+
+      verts.push_back(VertexPN(pos, normal));
+      if (j == 2) {
+        verts.push_back(VertexPN(pos, normal));
+      }
+    }
+    const Mesh::Vertex v = f.getVertex(0);
+    pos = v.getPosition();
+
+    if (!g_flat)
+      normal = v.getNormal();
+
+    verts.push_back(VertexPN(pos, normal));
+  }
+
+  // add vertices to bunny geometry
+  int numVertices = verts.size();
+  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
+  for (int i = 0; i < numVertices; ++i) {
+    Cvec3f pos = verts[i].p;
+    vertices[i] = verts[i];
+  }
+  g_bunnyGeometry.reset(new SimpleGeometryPN());
+  g_bunnyGeometry->upload(vertices, numVertices);
 
   // Now allocate array of SimpleGeometryPNX to for shells, one per layer
   g_bunnyShellGeometries.resize(g_numShells);
@@ -1451,8 +1491,8 @@ static void initScene() {
   g_groundNode->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_ground, g_bumpFloorMat, Cvec3(0, g_groundY, 0))));
 
-  g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
-  g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
+  g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-8, 1, 0))));
+  g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(8, 1, 0))));
 
   constructRobot(g_robot1Node, g_redDiffuseMat); // a Red robot
   constructRobot(g_robot2Node, g_blueDiffuseMat); // a Blue robot
@@ -1461,8 +1501,8 @@ static void initScene() {
   g_mesh_cube->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_cubeGeometryPN, g_specular, Cvec3(0, 0, 0))));
 
-  g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
-                          new MyShapeNode(g_bunnyGeometry, g_bunnyMat)));
+  /* g_bunnyNode->addChild(shared_ptr<MyShapeNode>( */
+  /*                         new MyShapeNode(g_bunnyGeometry, g_bunnyMat))); */
   for (int i = 0; i < g_numShells; ++i) {
     g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
                             new MyShapeNode(g_bunnyShellGeometries[i], g_bunnyShellMats[i])));
@@ -1475,7 +1515,7 @@ static void initScene() {
   g_world->addChild(g_light1Node);
   g_world->addChild(g_light2Node);
   g_world->addChild(g_mesh_cube);
-  /* g_world->addChild(g_bunnyNode); */
+  g_world->addChild(g_bunnyNode);
 
   g_light1Node->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_sphere, g_lightMat, Cvec3(0,0,0))));
