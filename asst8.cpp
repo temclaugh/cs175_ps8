@@ -171,10 +171,42 @@ static std::vector<Cvec3> g_tipPos,        // should be hair tip pos in world-sp
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
+Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m);
 static void updateShellGeometry() {
-  for (int i = 0; i < g_numShells; ++i) {
-    printf("%d\n", i);
-    /* g_bunnyShellGeometries[i].reset(new SimpleGeometryPNX()); */
+  int xs[] = {0, g_hairyness, 0};
+  int ys[] = {0, 0, g_hairyness};
+  for (int level = 0; level < g_numShells; ++level) {
+    vector<VertexPNX> verts;
+
+    for (int i = 0; i < g_bunnyMesh.getNumFaces(); ++i) {
+      const Mesh::Face f = g_bunnyMesh.getFace(i);
+      Cvec3 pos;
+      Cvec3 normal;
+
+      for (int j = 0; j < f.getNumVertices(); ++j) {
+        const Mesh::Vertex v = f.getVertex(j);
+        pos = v.getPosition();
+        normal = v.getNormal();
+        Cvec3 N = get_N(pos, normal, level + 1);
+
+        verts.push_back(VertexPNX(pos, N, Cvec2(xs[j % 3], ys[j % 3])));
+        if (j == 2) {
+          verts.push_back(VertexPNX(pos, N, Cvec2(xs[j % 3], ys[j % 3])));
+        }
+      }
+      const Mesh::Vertex v = f.getVertex(0);
+      pos = v.getPosition();
+      normal = v.getNormal();
+      Cvec3 N = get_N(pos, normal, level + 1);
+      verts.push_back(VertexPNX(pos, N, Cvec2(xs[0], ys[0])));
+    }
+
+    int numVertices = verts.size();
+    VertexPNX *vertices = (VertexPNX *) malloc(numVertices * sizeof(VertexPNX));
+    for (int i = 0; i < numVertices; ++i) {
+      vertices[i] = verts[i];
+    }
+    g_bunnyShellGeometries[level]->upload(vertices, g_bunnyMesh.getNumVertices());
   }
 
   // TASK 1 and 3 TODO: finish this function as part of Task 1 and Task 3
@@ -1414,6 +1446,7 @@ static void initGeometry() {
   initCubeMesh();
   initCubeAnimation();
   initBunnyMeshes();
+  updateShellGeometry();
 }
 
 static void constructRobot(shared_ptr<SgTransformNode> base, shared_ptr<Material> material) {
