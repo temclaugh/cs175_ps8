@@ -230,6 +230,7 @@ static void hairsSimulationCallback(int dontCare) {
     g_tipPos[i] += g_tipVelocity[i] * g_timeStep;
     g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
     g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping;
+
     if (i == 300) {
       printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
       printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
@@ -1188,7 +1189,23 @@ static void motion(const int x, const int y) {
 
   A = inv(getPathAccumRbt(g_world, target, 1)) * A;
 
+  if (target == g_bunnyNode) {
+    for (int i = 0; i < g_tipPos.size(); i++) {
+      g_tipPos[i] = world2bunny(g_tipPos[i]);
+      g_tipStartPos[i] = world2bunny(g_tipStartPos[i]);
+    }
+  }
+
   target->setRbt(doMtoOwrtA(M, target->getRbt(), A));
+
+  if (target == g_bunnyNode) {
+    bunnyTransform = getPathAccumRbt(g_world, g_bunnyNode);
+    for (int i = 0; i < g_tipPos.size(); i++) {
+      g_tipPos[i] = bunny2world(g_tipPos[i]);
+      g_tipStartPos[i] = bunny2world(g_tipStartPos[i]);
+    }
+  }
+
 
   g_mouseClickX += dx;
   g_mouseClickY += dy;
