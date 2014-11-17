@@ -120,8 +120,7 @@ static vector<shared_ptr<Material> > g_bunnyShellMats; // for bunny shells
 
 // New Geometry
 static const int g_numShells = 32; // constants defining how many layers of shells
-/* static double g_furHeight = 0.21; */
-static double g_furHeight = 0.005;
+static double g_furHeight = 0.21;
 static double g_hairyness = 0.7;
 
 static shared_ptr<SimpleGeometryPN> g_bunnyGeometry;
@@ -160,6 +159,7 @@ static int g_animateFramesPerSecond = 60;
 static bool animating = false;
 
 static const Cvec3 g_gravity(0, -0.5, 0);  // gavity vector
+/* static const Cvec3 g_gravity(0, -0.004, 0);  // gavity vector */
 static double g_timeStep = 0.02;
 static double g_numStepsPerFrame = 10;
 static double g_damping = 0.96;
@@ -219,16 +219,17 @@ static void hairsSimulationCallback(int dontCare) {
   for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
     Cvec3 pos = bunny2world(g_bunnyMesh.getVertex(i).getPosition());
 
-
-    Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * g_stiffness * 30;
-    Cvec3 force = g_gravity + spring;
-    g_tipPos[i] = g_tipPos[i] + g_tipVelocity[i] * g_timeStep;
-    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
-    g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping * .6;
-    if (i == 100) {
+    Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * 100 *g_stiffness;
+    Cvec3 force =  g_gravity + spring;
+    g_tipPos[i] += g_tipVelocity[i] * g_timeStep;
+    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * .01 * g_furHeight);
+    g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * .60 * g_damping;
+    if (i == 300) {
+      printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
       printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
       printf("gravity force: %f %f %f\n", g_gravity[0], g_gravity[1], g_gravity[2]);
       printf("force:         %f %f %f\n", force[0], force[1], force[2]);
+      printf("position:      %f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
       printf("velocity:      %f %f %f\n\n", g_tipVelocity[i][0], g_tipVelocity[i][1], g_tipVelocity[i][2]);
     }
   }
