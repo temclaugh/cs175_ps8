@@ -120,7 +120,7 @@ static vector<shared_ptr<Material> > g_bunnyShellMats; // for bunny shells
 
 // New Geometry
 static const int g_numShells = 24; // constants defining how many layers of shells
-static double g_furHeight = 0.21;
+static double g_furHeight = 1.21;
 static double g_hairyness = 0.7;
 
 static shared_ptr<SimpleGeometryPN> g_bunnyGeometry;
@@ -173,32 +173,30 @@ static std::vector<Cvec3> g_tipPos,        // should be hair tip pos in world-sp
 
 Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m);
 static void updateShellGeometry() {
-  int xs[] = {0, g_hairyness, 0};
-  int ys[] = {0, 0, g_hairyness};
+  float xs[] = {0, g_hairyness, 0};
+  float ys[] = {0, 0, g_hairyness};
   for (int level = 0; level < g_numShells; ++level) {
     vector<VertexPNX> verts;
-
     for (int i = 0; i < g_bunnyMesh.getNumFaces(); ++i) {
       const Mesh::Face f = g_bunnyMesh.getFace(i);
-      Cvec3 pos;
-      Cvec3 normal;
-
       for (int j = 0; j < f.getNumVertices(); ++j) {
         const Mesh::Vertex v = f.getVertex(j);
-        pos = v.getPosition();
-        normal = v.getNormal();
+        Cvec3 pos = v.getPosition();
+        Cvec3 normal = v.getNormal();
         Cvec3 N = get_N(pos, normal, level + 1);
-
-        verts.push_back(VertexPNX(pos, N, Cvec2(xs[j % 3], ys[j % 3])));
+        Cvec2 c = Cvec2(xs[j], ys[j]);
+        /* printf("%d: %f %f\n", j, xs[j], ys[j]); */
+        verts.push_back(VertexPNX(pos, N, Cvec2(xs[j], ys[j])));
       }
     }
-
     int numVertices = verts.size();
+    printf("numVertices: %d\n", numVertices);
     VertexPNX *vertices = (VertexPNX *) malloc(numVertices * sizeof(VertexPNX));
-    for (int i = 0; i < numVertices; ++i) {
-      vertices[i] = verts[i];
+    for (int k = 0; k < numVertices; ++k) {
+      vertices[k] = verts[k];
     }
-    g_bunnyShellGeometries[level]->upload(vertices, g_bunnyMesh.getNumVertices());
+    g_bunnyShellGeometries[level]->upload(vertices, numVertices);
+    verts.clear();
   }
 }
 
@@ -491,7 +489,7 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
 }
 
 Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m) {
-  Cvec3 s = p + (n_hat * g_furHeight);
+  Cvec3 s = p + (normalize(n_hat) * g_furHeight);
   return (s - p) * (float(1)/m);
 }
 
@@ -1426,7 +1424,6 @@ static void initGeometry() {
   initCubeMesh();
   initCubeAnimation();
   initBunnyMeshes();
-  updateShellGeometry();
 }
 
 static void constructRobot(shared_ptr<SgTransformNode> base, shared_ptr<Material> material) {
@@ -1528,6 +1525,7 @@ static void initScene() {
     g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
                             new MyShapeNode(g_bunnyShellGeometries[i], g_bunnyShellMats[i])));
   }
+  updateShellGeometry();
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
