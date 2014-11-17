@@ -181,9 +181,10 @@ static void updateShellGeometry() {
       const Mesh::Face f = g_bunnyMesh.getFace(i);
       for (int j = 0; j < f.getNumVertices(); ++j) {
         const Mesh::Vertex v = f.getVertex(j);
+        int index = v.getIndex();
         Cvec3 pos = v.getPosition();
         Cvec3 normal = v.getNormal();
-        Cvec3 N = get_N(pos, normal, g_numShells);
+        Cvec3 N = g_tipPos[index] - pos;
         Cvec2 c = Cvec2(xs[j], ys[j]);
         verts.push_back(VertexPNX(pos + (N * level), normal, c));
       }
@@ -216,6 +217,14 @@ static void initSimulation() {
 
   // TASK 1 TODO: initialize g_tipPos to "at-rest" hair tips in world coordinates
 
+  for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
+    const Mesh::Vertex v = g_bunnyMesh.getVertex(i);
+    Cvec3 pos = v.getPosition();
+    Cvec3 normal = v.getNormal();
+    Cvec3 N = get_N(pos, normal, g_numShells);
+    g_tipPos[i] = pos + (N * g_furHeight);
+    printf("%f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
+  }
 
   // Starts hair tip simulation
   hairsSimulationCallback(0);
@@ -484,6 +493,17 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
   }
 
   return out + (out2 * (float(1)/(n_v * n_v)));
+}
+
+
+static bool first_run = true;
+Cvec3 get_T(Cvec3 p, Cvec3 n_hat) {
+  if (first_run) {
+    // return S if first run
+    first_run = false;
+    return p + ((n_hat) * g_furHeight);
+  }
+
 }
 
 Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m) {
@@ -1291,18 +1311,22 @@ static void specialKeyboard(const int key, const int x, const int y) {
   case GLUT_KEY_RIGHT:
     g_furHeight *= 1.05;
     cerr << "fur height = " << g_furHeight << std::endl;
+    updateShellGeometry();
     break;
   case GLUT_KEY_LEFT:
     g_furHeight /= 1.05;
     std::cerr << "fur height = " << g_furHeight << std::endl;
+    updateShellGeometry();
     break;
   case GLUT_KEY_UP:
     g_hairyness *= 1.05;
     cerr << "hairyness = " << g_hairyness << std::endl;
+    updateShellGeometry();
     break;
   case GLUT_KEY_DOWN:
     g_hairyness /= 1.05;
     cerr << "hairyness = " << g_hairyness << std::endl;
+    updateShellGeometry();
     break;
   }
   glutPostRedisplay();
@@ -1523,7 +1547,6 @@ static void initScene() {
     g_bunnyNode->addChild(shared_ptr<MyShapeNode>(
                             new MyShapeNode(g_bunnyShellGeometries[i], g_bunnyShellMats[i])));
   }
-  updateShellGeometry();
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
@@ -1570,6 +1593,7 @@ int main(int argc, char * argv[]) {
     animateCube(0);
 
     initSimulation();
+    updateShellGeometry();
     glutMainLoop();
     return 0;
   }
