@@ -120,7 +120,7 @@ static vector<shared_ptr<Material> > g_bunnyShellMats; // for bunny shells
 
 // New Geometry
 static const int g_numShells = 24; // constants defining how many layers of shells
-static double g_furHeight = 1.21;
+static double g_furHeight = 0.21;
 static double g_hairyness = 0.7;
 
 static shared_ptr<SimpleGeometryPN> g_bunnyGeometry;
@@ -183,14 +183,12 @@ static void updateShellGeometry() {
         const Mesh::Vertex v = f.getVertex(j);
         Cvec3 pos = v.getPosition();
         Cvec3 normal = v.getNormal();
-        Cvec3 N = get_N(pos, normal, level + 1);
+        Cvec3 N = get_N(pos, normal, g_numShells);
         Cvec2 c = Cvec2(xs[j], ys[j]);
-        /* printf("%d: %f %f\n", j, xs[j], ys[j]); */
-        verts.push_back(VertexPNX(pos, N, Cvec2(xs[j], ys[j])));
+        verts.push_back(VertexPNX(pos + (N * level), normal, c));
       }
     }
     int numVertices = verts.size();
-    printf("numVertices: %d\n", numVertices);
     VertexPNX *vertices = (VertexPNX *) malloc(numVertices * sizeof(VertexPNX));
     for (int k = 0; k < numVertices; ++k) {
       vertices[k] = verts[k];
@@ -489,7 +487,7 @@ static Cvec3 getVertexVertex(Cvec3 v, vector<Cvec3> & verts, vector<Cvec3> & fac
 }
 
 Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m) {
-  Cvec3 s = p + (normalize(n_hat) * g_furHeight);
+  Cvec3 s = p + ((n_hat) * g_furHeight);
   return (s - p) * (float(1)/m);
 }
 
