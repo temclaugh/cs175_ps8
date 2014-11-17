@@ -165,11 +165,21 @@ static double g_damping = 0.96;
 static double g_stiffness = 4;
 static int g_simulationsPerSecond = 60;
 
+static RigTForm bunnyTransform;
+static std::vector<Cvec3> g_tipStartPos;
 static std::vector<Cvec3> g_tipPos,        // should be hair tip pos in world-space coordinates
                           g_tipVelocity;   // should be hair tip velocity in world-space coordinates
 
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
+
+Cvec3 bunny2world(Cvec3 bunnyVec) {
+  return Cvec3(bunnyTransform * Cvec4(bunnyVec, 1));
+}
+
+Cvec3 world2bunny(Cvec3 worldVec) {
+  return Cvec3(inv(bunnyTransform) * Cvec4(worldVec, 1));
+}
 
 Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m);
 static void updateShellGeometry() {
@@ -184,7 +194,7 @@ static void updateShellGeometry() {
         int index = v.getIndex();
         Cvec3 pos = v.getPosition();
         Cvec3 normal = v.getNormal();
-        Cvec3 N = g_tipPos[index] - pos;
+        Cvec3 N = world2bunny(g_tipPos[index]) - pos;
         Cvec2 c = Cvec2(xs[j], ys[j]);
         verts.push_back(VertexPNX(pos + (N * level), normal, c));
       }
@@ -201,10 +211,17 @@ static void updateShellGeometry() {
 
 static void hairsSimulationCallback(int dontCare) {
 
-
   // TASK 2 TODO: wrte dynamics simulation code here as part of TASK2
+  bunnyTransform = inv(getPathAccumRbt(g_world, g_bunnyNode));
+  for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
+    Cvec3 pos = bunny2world(g_bunnyMesh.getVertex(i).getPosition());
 
-
+    Cvec3 force = g_gravity + (g_tipStartPos[i] - g_tipPos[i]) * g_stiffness;
+    g_tipPos[i] = g_tipPos[i] + g_tipVelocity[i] * g_timeStep;
+    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
+    g_tipVelocity[i] = (g_tipVelocity[i] + force * g_timeStep) * g_damping;
+  }
+  updateShellGeometry();
   // schedule this to get called again
   glutTimerFunc(1000/g_simulationsPerSecond, hairsSimulationCallback, 0);
   glutPostRedisplay(); // signal redisplaying
@@ -212,7 +229,9 @@ static void hairsSimulationCallback(int dontCare) {
 
 // New function that initialize the dynamics simulation
 static void initSimulation() {
+  bunnyTransform = (getPathAccumRbt(g_world, g_bunnyNode));
   g_tipPos.resize(g_bunnyMesh.getNumVertices(), Cvec3(0));
+  g_tipStartPos.resize(g_bunnyMesh.getNumVertices(), Cvec3(0));
   g_tipVelocity = g_tipPos;
 
   // TASK 1 TODO: initialize g_tipPos to "at-rest" hair tips in world coordinates
@@ -222,8 +241,8 @@ static void initSimulation() {
     Cvec3 pos = v.getPosition();
     Cvec3 normal = v.getNormal();
     Cvec3 N = get_N(pos, normal, g_numShells);
-    g_tipPos[i] = pos + (N * g_furHeight);
-    printf("%f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
+    g_tipPos[i] = bunny2world(pos + (N * g_furHeight));
+    g_tipStartPos[i] = bunny2world(pos + (N * g_furHeight));
   }
 
   // Starts hair tip simulation
@@ -1593,7 +1612,6 @@ int main(int argc, char * argv[]) {
     animateCube(0);
 
     initSimulation();
-    updateShellGeometry();
     glutMainLoop();
     return 0;
   }
