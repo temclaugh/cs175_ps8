@@ -206,13 +206,10 @@ static void updateShellGeometry() {
       }
     }
     int numVertices = verts.size();
-    VertexPNX *vertices = (VertexPNX *) malloc(numVertices * sizeof(VertexPNX));
-    for (int k = 0; k < numVertices; ++k) {
-      vertices[k] = verts[k];
-    }
+
     g_bunnyShellGeometries[level]->upload(&verts[0], numVertices);
     verts.clear();
-    free(vertices);
+
   }
 }
 
@@ -231,14 +228,14 @@ static void hairsSimulationCallback(int dontCare) {
     g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
     g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping;
 
-    if (i == 300) {
-      printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
-      printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
-      printf("gravity force: %f %f %f\n", g_gravity[0], g_gravity[1], g_gravity[2]);
-      printf("force:         %f %f %f\n", force[0], force[1], force[2]);
-      printf("position:      %f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
-      printf("velocity:      %f %f %f\n\n", g_tipVelocity[i][0], g_tipVelocity[i][1], g_tipVelocity[i][2]);
-    }
+    // if (i == 300) {
+    //   printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
+    //   printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
+    //   printf("gravity force: %f %f %f\n", g_gravity[0], g_gravity[1], g_gravity[2]);
+    //   printf("force:         %f %f %f\n", force[0], force[1], force[2]);
+    //   printf("position:      %f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
+    //   printf("velocity:      %f %f %f\n\n", g_tipVelocity[i][0], g_tipVelocity[i][1], g_tipVelocity[i][2]);
+    // }
   }
   // schedule this to get called again
   glutTimerFunc(1000/g_simulationsPerSecond, hairsSimulationCallback, 0);
@@ -576,16 +573,9 @@ static void initBunnyMeshes() {
 
   // add vertices to bunny geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
 
   g_bunnyGeometry.reset(new SimpleGeometryPN());
-  g_bunnyGeometry->upload(vertices, numVertices);
-
-  free(vertices);
+  g_bunnyGeometry->upload(&verts[0], numVertices);
 
   // Now allocate array of SimpleGeometryPNX to for shells, one per layer
   g_bunnyShellGeometries.resize(g_numShells);
@@ -692,16 +682,11 @@ static void initCubeMesh() {
 
   // add vertices to cube geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
+
   if (!g_cubeGeometryPN) {
     g_cubeGeometryPN.reset(new SimpleGeometryPN());
   }
-  g_cubeGeometryPN->upload(vertices, numVertices);
-  free(vertices);
+  g_cubeGeometryPN->upload(&verts[0], numVertices);
 }
 
 static void initCubeAnimation() {
@@ -828,14 +813,9 @@ static void animateCube(int ms) {
 
   // dump into geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
-  g_cubeGeometryPN->upload(vertices, numVertices);
 
-  free(vertices);
+  g_cubeGeometryPN->upload(&verts[0], numVertices);
+
   glutPostRedisplay();
   glutTimerFunc(1000/g_animateFramesPerSecond,
       animateCube,
