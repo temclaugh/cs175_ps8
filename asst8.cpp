@@ -159,7 +159,6 @@ static int g_animateFramesPerSecond = 60;
 static bool animating = false;
 
 static const Cvec3 g_gravity(0, -0.5, 0);  // gavity vector
-/* static const Cvec3 g_gravity(0, -0.004, 0);  // gavity vector */
 static double g_timeStep = 0.02;
 static double g_numStepsPerFrame = 10;
 static double g_damping = 0.96;
@@ -171,19 +170,24 @@ static RigTForm bunnyTransform;
 static std::vector<Cvec3> g_tipStartPos;
 static std::vector<Cvec3> g_tipPos,        // should be hair tip pos in world-space coordinates
                           g_tipVelocity;   // should be hair tip velocity in world-space coordinates
-
+static bool bunnyTransformSet = false;
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
 Cvec3 bunny2world(Cvec3 bunnyVec) {
+  if (!bunnyTransformSet) {
+    printf("BUNNY TRANSFORM USED BEFORE BEING SET (BUNNY2WORLD)");
+  }
   return Cvec3(bunnyTransform * Cvec4(bunnyVec, 1));
 }
 
 Cvec3 world2bunny(Cvec3 worldVec) {
+  if (!bunnyTransformSet) {
+    printf("BUNNY TRANSFORM USED BEFORE BEING SET (WORLD2BUNNY)");
+  }
   return Cvec3(inv(bunnyTransform) * Cvec4(worldVec, 1));
 }
 
-Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m);
 static void updateShellGeometry() {
   float xs[] = {0, g_hairyness, 0};
   float ys[] = {0, 0, g_hairyness};
@@ -198,7 +202,7 @@ static void updateShellGeometry() {
         Cvec3 normal = v.getNormal();
         Cvec3 N = world2bunny(g_tipPos[index]) - pos;
         Cvec2 c = Cvec2(xs[j], ys[j]);
-        verts.push_back(VertexPNX(pos + (N * level), normal, c));
+        verts.push_back(VertexPNX(pos + ((N * level)/g_numShells), normal, c));
       }
     }
     int numVertices = verts.size();
@@ -206,8 +210,9 @@ static void updateShellGeometry() {
     for (int k = 0; k < numVertices; ++k) {
       vertices[k] = verts[k];
     }
-    g_bunnyShellGeometries[level]->upload(vertices, numVertices);
+    g_bunnyShellGeometries[level]->upload(&verts[0], numVertices);
     verts.clear();
+    free(vertices);
   }
 }
 
@@ -215,15 +220,16 @@ static void hairsSimulationCallback(int dontCare) {
 
   // TASK 2 TODO: wrte dynamics simulation code here as part of TASK2
   g_shellNeedsUpdate = true;
-  bunnyTransform = inv(getPathAccumRbt(g_world, g_bunnyNode));
+  bunnyTransformSet = true;
+  bunnyTransform = getPathAccumRbt(g_world, g_bunnyNode);
   for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
     Cvec3 pos = bunny2world(g_bunnyMesh.getVertex(i).getPosition());
 
-    Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * 100 *g_stiffness;
+    Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * g_stiffness;
     Cvec3 force =  g_gravity + spring;
     g_tipPos[i] += g_tipVelocity[i] * g_timeStep;
-    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * .01 * g_furHeight);
-    g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * .60 * g_damping;
+    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
+    g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping;
     if (i == 300) {
       printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
       printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
@@ -240,6 +246,7 @@ static void hairsSimulationCallback(int dontCare) {
 
 // New function that initialize the dynamics simulation
 static void initSimulation() {
+  bunnyTransformSet = true;
   bunnyTransform = (getPathAccumRbt(g_world, g_bunnyNode));
   g_tipPos.resize(g_bunnyMesh.getNumVertices(), Cvec3(0));
   g_tipStartPos.resize(g_bunnyMesh.getNumVertices(), Cvec3(0));
@@ -251,9 +258,8 @@ static void initSimulation() {
     const Mesh::Vertex v = g_bunnyMesh.getVertex(i);
     Cvec3 pos = v.getPosition();
     Cvec3 normal = v.getNormal();
-    Cvec3 N = get_N(pos, normal, g_numShells);
-    g_tipPos[i] = bunny2world(pos + (N * g_furHeight));
-    g_tipStartPos[i] = bunny2world(pos + (N * g_furHeight));
+    g_tipPos[i] = bunny2world(pos + normal * g_furHeight);
+    g_tipStartPos[i] = bunny2world(pos + normal * g_furHeight);
   }
 
   // Starts hair tip simulation
@@ -536,11 +542,6 @@ Cvec3 get_T(Cvec3 p, Cvec3 n_hat) {
 
 }
 
-Cvec3 get_N(Cvec3 p, Cvec3 n_hat, int m) {
-  Cvec3 s = p + ((n_hat) * g_furHeight);
-  return (s - p) * (float(1)/m);
-}
-
 static void simpleShadeCube(Mesh& mesh);
 static void shadeCube(Mesh& mesh);
 
@@ -579,8 +580,11 @@ static void initBunnyMeshes() {
     Cvec3f pos = verts[i].p;
     vertices[i] = verts[i];
   }
+
   g_bunnyGeometry.reset(new SimpleGeometryPN());
   g_bunnyGeometry->upload(vertices, numVertices);
+
+  free(vertices);
 
   // Now allocate array of SimpleGeometryPNX to for shells, one per layer
   g_bunnyShellGeometries.resize(g_numShells);
@@ -696,6 +700,7 @@ static void initCubeMesh() {
     g_cubeGeometryPN.reset(new SimpleGeometryPN());
   }
   g_cubeGeometryPN->upload(vertices, numVertices);
+  free(vertices);
 }
 
 static void initCubeAnimation() {
@@ -828,6 +833,8 @@ static void animateCube(int ms) {
     vertices[i] = verts[i];
   }
   g_cubeGeometryPN->upload(vertices, numVertices);
+
+  free(vertices);
   glutPostRedisplay();
   glutTimerFunc(1000/g_animateFramesPerSecond,
       animateCube,
