@@ -814,7 +814,6 @@ static void animateCube(int ms) {
   // dump into geometry
   int numVertices = verts.size();
   g_cubeGeometryPN->upload(&verts[0], numVertices);
-
   glutPostRedisplay();
   glutTimerFunc(1000/g_animateFramesPerSecond,
       animateCube,
