@@ -1,31 +1,31 @@
-Assignment 7
+Assignment 8
 
 PARTNERS: Tim McLaughlin, Jo Booth
 
 Submitting:
-AUTHORS              geometry.o           quat.h
-Fieldstone.ppm       geometrymaker.h      renderstates.cpp
-FieldstoneNormal.ppm glsupport.cpp        renderstates.h
-LICENSE              glsupport.h          renderstates.o
-Makefile             glsupport.o          rigtform.h
-README               material.cpp         scenegraph.cpp
-animation.txt        material.h           scenegraph.h
-arcball.h            material.o           scenegraph.o
-asst7                matrix4.h            sgfiller.h
-asst7.cpp            mesh.h               sgutils.h
-asst7.o              mesh.interface       shaders
+AUTHORS              geometry.cpp         ppm.o
+Fieldstone.ppm       geometry.h           quat.h
+FieldstoneNormal.ppm geometry.o           renderstates.cpp
+LICENSE              geometrymaker.h      renderstates.h
+Makefile             glsupport.cpp        renderstates.o
+README               glsupport.h          rigtform.h
+animation.txt        glsupport.o          scenegraph.cpp
+arcball.h            material.cpp         scenegraph.h
+asst8                material.h           scenegraph.o
+asst8-snippets.cpp   material.o           sgfiller.h
+asst8.cpp            matrix4.h            sgutils.h
+asst8.o              mesh.h               shaders
+asst8.pdf            mesh.interface       shell.ppm
 asstcommon.h         picker.cpp           texture.cpp
-cube.mesh            picker.h             texture.h
-cvec.h               picker.o             texture.o
-drawer.h             ppm.cpp              uniforms.h
-geometry.cpp         ppm.h
-geometry.h           ppm.o
+bunny.mesh           picker.h             texture.h
+cube.mesh            picker.o             texture.o
+cvec.h               ppm.cpp              uniforms.h
 
 Platforms:
   Ubuntu and OS X
 
 Compilation:
-  make
+  make OPT=1
 
 Requirements:
   We met all of the problem set requirements!
@@ -34,7 +34,7 @@ Code Design:
   We just followed the design on the spec.
 
 Running program:
-  ./asst7, use same keybindings and file format as solution binary.
+  ./asst8, use same keybindings and file format as solution binary.
 
 Extra stuff:
   None.

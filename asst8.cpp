@@ -175,23 +175,23 @@ static bool bunnyTransformSet = false;
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
 Cvec3 bunny2world(Cvec3 bunnyVec) {
-  if (!bunnyTransformSet) {
-    printf("BUNNY TRANSFORM USED BEFORE BEING SET (BUNNY2WORLD)");
-  }
   return Cvec3(bunnyTransform * Cvec4(bunnyVec, 1));
 }
 
 Cvec3 world2bunny(Cvec3 worldVec) {
-  if (!bunnyTransformSet) {
-    printf("BUNNY TRANSFORM USED BEFORE BEING SET (WORLD2BUNNY)");
-  }
   return Cvec3(inv(bunnyTransform) * Cvec4(worldVec, 1));
 }
 
 static void updateShellGeometry() {
   float xs[] = {0, g_hairyness, 0};
   float ys[] = {0, 0, g_hairyness};
+
+
+  vector<Cvec3> prevPos;
+  prevPos.resize(g_bunnyMesh.getNumFaces() * 3);
+
   for (int level = 0; level < g_numShells; ++level) {
+    int counter = 0;
     vector<VertexPNX> verts;
     for (int i = 0; i < g_bunnyMesh.getNumFaces(); ++i) {
       const Mesh::Face f = g_bunnyMesh.getFace(i);
@@ -200,44 +200,45 @@ static void updateShellGeometry() {
         int index = v.getIndex();
         Cvec3 pos = v.getPosition();
         Cvec3 normal = v.getNormal();
-        Cvec3 N = world2bunny(g_tipPos[index]) - pos;
         Cvec2 c = Cvec2(xs[j], ys[j]);
-        verts.push_back(VertexPNX(pos + ((N * level)/g_numShells), normal, c));
+
+        Cvec3 n = normal * g_furHeight / g_numShells;
+        Cvec3 s = pos + (n * g_numShells);
+        Cvec3 t = world2bunny(g_tipPos[index]);
+        Cvec3 d = (t - s) / ((g_numShells + 1) * g_numShells / 2);
+        /* Cvec3 d = (world2bunny(g_tipPos[index]) - (normal * g_furHeight)) / (g_numShells - 1); */
+
+        if (level == 0) {
+          prevPos[counter] = pos;
+          verts.push_back(VertexPNX(pos, n, c));
+        }
+        else {
+          Cvec3 new_position = prevPos[counter] + n + (d * level);
+          verts.push_back(VertexPNX(new_position, new_position - prevPos[counter], c));
+          prevPos[counter] = new_position;
+        }
+        ++counter;
       }
     }
     int numVertices = verts.size();
-    VertexPNX *vertices = (VertexPNX *) malloc(numVertices * sizeof(VertexPNX));
-    for (int k = 0; k < numVertices; ++k) {
-      vertices[k] = verts[k];
-    }
     g_bunnyShellGeometries[level]->upload(&verts[0], numVertices);
     verts.clear();
-    free(vertices);
   }
 }
 
 static void hairsSimulationCallback(int dontCare) {
 
-  // TASK 2 TODO: wrte dynamics simulation code here as part of TASK2
   g_shellNeedsUpdate = true;
   bunnyTransformSet = true;
   bunnyTransform = getPathAccumRbt(g_world, g_bunnyNode);
-  for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
-    Cvec3 pos = bunny2world(g_bunnyMesh.getVertex(i).getPosition());
-
-    Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * g_stiffness;
-    Cvec3 force =  g_gravity + spring;
-    g_tipPos[i] += g_tipVelocity[i] * g_timeStep;
-    g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
-    g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping;
-
-    if (i == 300) {
-      printf("hair length:   %f\n", sqrt(norm2(g_tipPos[i] - pos)));
-      printf("spring force:  %f %f %f\n", spring[0], spring[1], spring[2]);
-      printf("gravity force: %f %f %f\n", g_gravity[0], g_gravity[1], g_gravity[2]);
-      printf("force:         %f %f %f\n", force[0], force[1], force[2]);
-      printf("position:      %f %f %f\n", g_tipPos[i][0], g_tipPos[i][1], g_tipPos[i][2]);
-      printf("velocity:      %f %f %f\n\n", g_tipVelocity[i][0], g_tipVelocity[i][1], g_tipVelocity[i][2]);
+  for (int q = 0; q < g_numStepsPerFrame; ++q) {
+    for (int i = 0; i < g_bunnyMesh.getNumVertices(); ++i) {
+      Cvec3 pos = bunny2world(g_bunnyMesh.getVertex(i).getPosition());
+      Cvec3 spring = (g_tipStartPos[i] - g_tipPos[i]) * g_stiffness;
+      Cvec3 force =  g_gravity + spring;
+      g_tipPos[i] += g_tipVelocity[i] * g_timeStep;
+      g_tipPos[i] = pos + (normalize(g_tipPos[i] - pos) * g_furHeight);
+      g_tipVelocity[i] = (g_tipVelocity[i] + (force * g_timeStep)) * g_damping;
     }
   }
   // schedule this to get called again
@@ -576,16 +577,9 @@ static void initBunnyMeshes() {
 
   // add vertices to bunny geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
 
   g_bunnyGeometry.reset(new SimpleGeometryPN());
-  g_bunnyGeometry->upload(vertices, numVertices);
-
-  free(vertices);
+  g_bunnyGeometry->upload(&verts[0], numVertices);
 
   // Now allocate array of SimpleGeometryPNX to for shells, one per layer
   g_bunnyShellGeometries.resize(g_numShells);
@@ -640,9 +634,6 @@ static void shadeCube(Mesh& mesh) {
     if (norm2(v.getNormal()) > .001) {
           v.setNormal(normalize(v.getNormal()));
     }
-    else {
-      printf("failed to normalize\n");
-    }
   }
 }
 
@@ -692,16 +683,10 @@ static void initCubeMesh() {
 
   // add vertices to cube geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
   if (!g_cubeGeometryPN) {
     g_cubeGeometryPN.reset(new SimpleGeometryPN());
   }
-  g_cubeGeometryPN->upload(vertices, numVertices);
-  free(vertices);
+  g_cubeGeometryPN->upload(&verts[0], numVertices);
 }
 
 static void initCubeAnimation() {
@@ -828,14 +813,8 @@ static void animateCube(int ms) {
 
   // dump into geometry
   int numVertices = verts.size();
-  VertexPN *vertices = (VertexPN *) malloc(numVertices * sizeof(VertexPN));
-  for (int i = 0; i < numVertices; ++i) {
-    Cvec3f pos = verts[i].p;
-    vertices[i] = verts[i];
-  }
-  g_cubeGeometryPN->upload(vertices, numVertices);
+  g_cubeGeometryPN->upload(&verts[0], numVertices);
 
-  free(vertices);
   glutPostRedisplay();
   glutTimerFunc(1000/g_animateFramesPerSecond,
       animateCube,
@@ -1191,7 +1170,7 @@ static void motion(const int x, const int y) {
 
   if (target == g_bunnyNode) {
     for (int i = 0; i < g_tipPos.size(); i++) {
-      g_tipPos[i] = world2bunny(g_tipPos[i]);
+      /* g_tipPos[i] = world2bunny(g_tipPos[i]); */
       g_tipStartPos[i] = world2bunny(g_tipStartPos[i]);
     }
   }
@@ -1201,7 +1180,7 @@ static void motion(const int x, const int y) {
   if (target == g_bunnyNode) {
     bunnyTransform = getPathAccumRbt(g_world, g_bunnyNode);
     for (int i = 0; i < g_tipPos.size(); i++) {
-      g_tipPos[i] = bunny2world(g_tipPos[i]);
+      /* g_tipPos[i] = bunny2world(g_tipPos[i]); */
       g_tipStartPos[i] = bunny2world(g_tipStartPos[i]);
     }
   }
@@ -1374,22 +1353,22 @@ static void specialKeyboard(const int key, const int x, const int y) {
   case GLUT_KEY_RIGHT:
     g_furHeight *= 1.05;
     cerr << "fur height = " << g_furHeight << std::endl;
-    updateShellGeometry();
+    /* updateShellGeometry(); */
     break;
   case GLUT_KEY_LEFT:
     g_furHeight /= 1.05;
     std::cerr << "fur height = " << g_furHeight << std::endl;
-    updateShellGeometry();
+    /* updateShellGeometry(); */
     break;
   case GLUT_KEY_UP:
     g_hairyness *= 1.05;
     cerr << "hairyness = " << g_hairyness << std::endl;
-    updateShellGeometry();
+    /* updateShellGeometry(); */
     break;
   case GLUT_KEY_DOWN:
     g_hairyness /= 1.05;
     cerr << "hairyness = " << g_hairyness << std::endl;
-    updateShellGeometry();
+    /* updateShellGeometry(); */
     break;
   }
   glutPostRedisplay();
